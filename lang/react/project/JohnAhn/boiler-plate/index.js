@@ -1,7 +1,8 @@
 const express = require('express')
 const app = express()
-const port = 5000
+const port = 5000;
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const config = require('./config/key');
 // 아래 모델 뎅터 가져오기전에 먼저 몽고디비 연결할수 있는 config 키값을 먼저 설정해줘야 오류 안나는듯
 const { User } = require('./models/User');
@@ -10,6 +11,7 @@ const { User } = require('./models/User');
 app.use(bodyParser.urlencoded({ extended: true }));
 // application json 타입으로 된 것을 분석해서 가져 올수 있도록 해준다.
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 const monggoose = require('mongoose')
 monggoose.connect( config.mongoURI, {
@@ -20,7 +22,7 @@ monggoose.connect( config.mongoURI, {
 
 
         
-app.get('/', (req, res) => res.send('Hello World! thomas nodemon!!, 성공하자~!!'))
+app.get('/', (req, res) => res.send('Hello World! thomas nodemon!!, 성공하자~!!!, 아자'))
 
 app.post('/register', (req, res) => {
     // 회원 가입 할때 필요한 정보들을 client에서 가져오면
@@ -41,6 +43,47 @@ app.post('/register', (req, res) => {
             success: true
         });
     }); // end of user.save
+
+});
+
+// 
+app.post('/login', (req, res) => {
+    // 요청된 이메일을 데이터베이스에서 찾는다
+    User.findOne({ email: req.body.email }, (err, user) => {
+        if(!user) {
+            return res.json({
+                loginSuccess: false,
+                message: "제공된 이메일에 해당하는 유저가 없습니다."
+            })
+        }
+
+
+
+
+        // 요청된 이메일이 데이터베이스에 있다면 비밀번호가 맞는 비밀번호 인지 확인
+        user.comparePassword(req.body.password, (err, isMatch) => {
+            if(!isMath) return res.json({ loginSuccess: false, message: '비밀번호가 틀렸습니다.'});
+
+        // 비밀번호까지 맞다면 토큰을 생성한다.
+            user.generateToken((err, user) => {
+                if(err) return res.status(400).send(err);
+
+                // 토큰을 저장한다. 쿠키, 또는 로컬 스토리지 또는 세션
+                res.cookie('x_auth', user.token)
+                .status(200)
+                .json({ loginSuccess: true, userId: user._id })
+
+
+            })
+
+        })   // end of userComparePassword
+
+
+    })    // end of findOne
+
+
+
+
 
 })
 
