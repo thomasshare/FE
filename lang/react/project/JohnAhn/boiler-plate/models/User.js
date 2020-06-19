@@ -35,7 +35,7 @@ const userSchema = mongoose.Schema({
     }
 })
 
-userSchema.pre('save', function( next ) { 
+userSchema.pre('save', function( next ) {
     // 아래의 this는 const userSchema를 가르킴, 그러면 그냥 this. 으로 사용해도 되려나??, this.password?
     var user = this;
 
@@ -61,14 +61,18 @@ userSchema.pre('save', function( next ) {
 
 userSchema.methods.comparePassword = function (plainPassword, cb) {
     // plainPassword와 왐호화된 비밀번호를 비교, 예> 1234567, 암호화된 비밀번호 $2b$10$IMzGyYkw/a2yH1KVMb8oceDht0Xk2knSRhDIqrmlMEXvDsi1FIBEW
-    bcrypt.compare(plainPassword, this.password, function(err, isMatch) {
-        if(err) return cb(err),
+    console.log('comparePassword 내부의 plainPassword 정보는? : ', plainPassword);
+    console.log('comparePassword 내부의 this.password 정보는? : ', this.password);
+    bcrypt.compare(plainPassword, this.password, function (err, isMatch) {
+        console.log('comparePassword 내부의 isMatch 정보는? : ', isMatch);
+        if(err) return cb(err);
         cb(null, isMatch)
     })
 }   // end of comparePassword
 
 
 userSchema.methods.generateToken = function(cb) {
+    
     var user = this;    // ES5 문법을 사용하기 때문에 user 에 this를 넣어줘야 함
 
     console.log('userid 정보 : ', user._id);
@@ -84,6 +88,26 @@ userSchema.methods.generateToken = function(cb) {
         if(err) return cb(err)
         cb(null, user)
     })
+}   // end of generate token
+
+userSchema.statics.findByToken = function (token, cb) {
+    var user = this;
+
+    // 토큰을 decode 한다.
+    jwt.verify(token, 'secretToken', function (err, decoded) {
+        // user id를 이용해서 유저를 찾은 다음에
+
+        // 클라이언트에서 가져온 token과 DB에 보관된 토근이 일치하는지 확인
+
+        user.findOne( { '_id': decoded, 'token': token}, function(err, user) {
+            if(err) return cb(err);
+            cb(null, user);
+        })
+
+
+    });
+
+
 }
 
 
